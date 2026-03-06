@@ -133,6 +133,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DynamicTable.cpp" />
+    <ClCompile Include="lab1.cpp" />
     <ClCompile Include="lex.cpp" />
     <ClCompile Include="StaticTable.cpp" />
   </ItemGroup>
