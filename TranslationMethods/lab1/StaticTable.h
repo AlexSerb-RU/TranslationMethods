@@ -18,14 +18,19 @@ public:
       table.clear( );
    }
 
-   int add_element( T element ) {};
-
    int read_file( ifstream filepath ) {};
+
+   bool is_contain( T element ) {};
+
+   int add_element( T element ) {};
 
    T get_element( int idx ) {};
 
-   int find( T element ) {};
+   int find( T element ) {}; // АЛгоритм ппоиска в упорядоченной таблице
 
-   bool is_contain( T element ) {};
+   T operator []( int idx )
+   {
+      return get_element( idx );
+   }
 };
 

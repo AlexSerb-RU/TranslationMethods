@@ -1,20 +1,21 @@
 #pragma once
 
 #include <string>
+#include <optional>
 
-enum LEX_TYPE {UNDEFINED, CONSTANT, ID, KEYWORD, SEP, OPERATION_SYMBOL};
+enum LEX_TYPE {UNDEFINED, CONSTANT, ID};  //, KEYWORD, SEP, OPERATION_SYMBOL
 
 struct lex
 {
 private:
-   std::string name;
+   //std::string name;
 
-   int value;
    LEX_TYPE type;
+   std::optional<int> value;
 
 public:
-   lex( std::string _name, LEX_TYPE _type = UNDEFINED, int _value = 0 )
-      : name( _name ), type( _type ), value( _value )
+   lex( LEX_TYPE _type = UNDEFINED, int _value = INT_MAX )
+      :  type( _type ), value( _value )  // name( _name )  // std::string _name,
    {}
 
    int set_type( LEX_TYPE _type )
@@ -31,20 +32,17 @@ public:
       return 0;
    }
 
-   LEX_TYPE get_type( ) const
+   int get_type( LEX_TYPE &buf ) const
    {
-      return type;
+      buf = type;
+
+      return 0;
    }
 
    int get_value( int &buf ) const
    {
-      if ( type == CONSTANT or type == ID )
-      {
-         buf = value;
-         return 0;
-      }
-
-      return -1;
+      // value.has_value( )
    }
+
 };
 
