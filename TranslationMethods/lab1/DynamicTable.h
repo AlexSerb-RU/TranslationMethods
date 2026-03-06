@@ -32,6 +32,8 @@ public:
       return true;
    }
 
+   int add_elem( const std::string name ) {}
+
    int find_lex( const std::string &name, lex &buf )
    {
       auto result = table.find( name );
