@@ -18,7 +18,7 @@ public:
       table.clear( );
    }
 
-   int read_file( ifstream filepath ) {};
+   int read_file( std::string filepath ) {};
 
    bool is_contain( T element ) {};
 
