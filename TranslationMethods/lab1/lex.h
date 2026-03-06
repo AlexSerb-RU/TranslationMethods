@@ -44,5 +44,15 @@ public:
       // value.has_value( )
    }
 
+   operator std::string( ) const {
+      LEX_TYPE buf1;
+      int buf2;
+
+      get_type( buf1 );
+      get_value( buf2 );
+
+      return "Type: " + std::to_string( buf1 ) +
+         "\nValue: " + std::to_string( buf2 );
+   }
 };
 
