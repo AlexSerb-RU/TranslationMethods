@@ -41,7 +41,13 @@ public:
 
    int get_value( int &buf ) const
    {
-      // value.has_value( )
+      if ( value.has_value( ) )
+      {
+         buf = value.value( );
+         return 0;
+      }
+
+      return 1;
    }
 
    operator std::string( ) const {
