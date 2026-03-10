@@ -30,7 +30,7 @@ public:
 
       while ( stream >> tmp )
       {
-         table.insert( tmp );
+         add_element( tmp );
       }
 
       return 0;
