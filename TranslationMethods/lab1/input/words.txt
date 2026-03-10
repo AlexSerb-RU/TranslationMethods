@@ -1,0 +1,6 @@
+int
+switch
+case
+void
+main
+return
