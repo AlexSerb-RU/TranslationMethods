@@ -98,7 +98,7 @@ public:
 
    int print_table( std::ostream &stream )
    {
-      stream << std::setw( 10 ) << "NAME" << "TYPE" << "VALUE";
+      stream << std::setw( 10 ) << "NAME\t" << "TYPE\t" << "VALUE\n";
 
       for ( auto &elem : table )
       {
@@ -114,7 +114,7 @@ public:
          if ( elem.second.get_value( v ) == 0 )
             value = std::to_string( v );
 
-         stream << std::setw( 10 ) << elem.first << std::to_string( buf_type ) << value;
+         stream << std::setw( 10 ) << elem.first << "\t" << std::to_string( buf_type ) << "\t" << value << "\n";
       }
 
       return 0;
