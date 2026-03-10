@@ -188,6 +188,12 @@ public:
 int main( )
 {
    string out_filename = "out.txt";
+   string words_fp = "input/words.txt";
+
+   auto words = StaticTable<string>( );
+   words.read_file( words_fp );
+   cout << "\nwords: find switch: id: " << words.find( "switch" ) << "\n";
+   cout << "\nwords: find abcde: id: " << words.find( "abcde" ) << "\n";
 
    auto table = DynamicTable();
 

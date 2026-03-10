@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/TranslationMethods/lab1/out.txt
+/TranslationMethods/lab1/lab1.sln
