@@ -19,6 +19,11 @@ public:
       table.clear( );
    }
 
+   int size( )
+   {
+      return static_cast<int>( table.size( ) );
+   };
+
    int read_file( std::string filepath )
    {
       std::ifstream stream( filepath );
