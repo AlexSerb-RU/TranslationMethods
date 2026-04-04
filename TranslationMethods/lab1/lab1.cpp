@@ -2,9 +2,11 @@
 #include "StaticTable.h"
 #include <iostream>
 
+#include <iostream>
+
 using namespace std;
 
-enum OPTIONS {ADD_ELEM=1, GET_ELEM, IS_CONTAIN, SET_TYPE, SET_VALUE, PRINT_TABLE};
+enum OPTIONS {ADD_ELEM=1, ADD_ELEM_WIWTH_ARGS, GET_ELEM, IS_CONTAIN, SET_TYPE, SET_VALUE, PRINT_TABLE};
 
 template<typename T>
 class ConsoleApp
@@ -35,11 +37,12 @@ private:
    {
       user_stream << "\n\nDynamic Table options\n"
          << "1. Add element\n"
-         << "2. Get element\n"
-         << "3. Does the element exist?\n"
-         << "4. Set type of element\n"
-         << "5. Set value of element\n"
-         << "6. Print table\n";
+         << "2. Add element with ARGS\n"
+         << "3. Get element\n"
+         << "4. Does the element exist?\n"
+         << "5. Set type of element\n"
+         << "6. Set value of element\n"
+         << "7. Print table\n";
    };
 
    void get_command( )
@@ -55,6 +58,9 @@ private:
       {
          case ADD_ELEM:
             add_elem( );
+            break;
+         case ADD_ELEM_WIWTH_ARGS:
+            add_elem_with_args( );
             break;
          case GET_ELEM:
             get_elem( );
@@ -81,18 +87,103 @@ private:
       user_stream << "\n";
    }
 
+   int enter_elem_value( )
+   {
+      string str;
+      int buf;
+
+      cin >> str;
+      try
+      {
+         buf = stoi( str );
+      }
+      catch ( const invalid_argument& e )
+      {
+         user_stream << "\nThe VALUE not correct, entered is recognized as 0";
+         buf = 0;
+      }
+      catch ( const out_of_range& e )
+      {
+         user_stream << "\nThe VALUE out of range of INT type, entered is recognized as 0";
+         buf = 0;
+      }
+         
+
+      return buf;
+   }
+
+   LEX_TYPE enter_elem_type( )
+   {
+      string str;
+      int buf;
+
+      cin >> str;
+      try
+      {
+         buf = stoi( str );
+      }
+      catch ( const invalid_argument& e )
+      {
+         user_stream << "\nThe TYPE not correct, entered is recognized as UNDEFINED";
+         buf = 0;
+      }
+      catch ( const out_of_range& e )
+      {
+         user_stream << "\nThe TYPE out of range, entered is recognized as UNDEFINED";
+         buf = 0;
+      }
+
+      if ( 0 >= buf or buf >= 2 )
+      {
+         user_stream << "\nThe TYPE out of range, entered is recognized as UNDEFINED";
+         buf = 0;
+      }
+
+      return LEX_TYPE(buf);
+   }
+
    void add_elem( )
    {
       enter_elem_name( );
 
       if ( table.add_elem( elem_name_buf ) != 0 )
       {
-         user_stream << "\nCouldn't add element\n";
+         user_stream << "\nThe element is already contained in the table.\n";
          return;
       }
 
-      user_stream << "\nThe element has been added\n";
+      user_stream << "\nThe element has been added.\n";
 
+   }
+
+   void add_elem_with_args( )
+   {
+      int value;
+      LEX_TYPE type;
+
+      user_stream << "\nEnter element NAME TYPE(UNDEFINED=0, CONSTANT, ID) VALUE(integer): \n";
+      
+      cin >> elem_name_buf;
+      type = enter_elem_type( );
+      value = enter_elem_value( );
+
+      if ( table.add_elem( elem_name_buf ) != 0 )
+      {
+         user_stream << "\nThe element is already contained in the table.\n";
+         return;
+      }
+
+      if ( table.set_attr( elem_name_buf, type ) != 0 ) // Маловероятно
+      {
+         user_stream << "\nThe TYPE setting element was not found!!!\n";
+         return;
+      }
+
+      if ( table.set_attr( elem_name_buf, value ) != 0 ) // Маловероятно
+      {
+         user_stream << "\nThe VALUE setting element was not found!!!\n";
+         return;
+      }
    }
 
    void get_elem( )
@@ -124,18 +215,14 @@ private:
    {
       enter_elem_name( );
 
-      LEX_TYPE type;
-      int buf;
-
       user_stream << "\nEnter TYPE (UNDEFINED=0, CONSTANT=1, ID=2): ";
-      cin >> buf;
+      LEX_TYPE type = enter_elem_type( );
+
       user_stream << "\n";
-      
-      type = LEX_TYPE( buf );
       
       if ( table.set_attr( elem_name_buf, type ) != 0 )
       {
-         user_stream << "\nCouldn't set the token TYPE\n";
+         user_stream << "\nThe TYPE setting element was not found!!!\n";
          return;
       }
 
@@ -146,15 +233,16 @@ private:
    {
       enter_elem_name( );
 
-      int value;
+      
 
       user_stream << "\nEnter VALUE (e.g. 4631): ";
-      cin >> value;
+      int value = enter_elem_value( );
+
       user_stream << "\n";
 
       if ( table.set_attr( elem_name_buf, value ) != 0 )
       {
-         user_stream << "\nCouldn't set the token VALUE\n";
+         user_stream << "\nThe VALUE setting element was not found!!!\n";
          return;
       }
 
