@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /TranslationMethods/lab1/out.txt
 /TranslationMethods/lab1/lab1.sln
+/TranslationMethods/lab1/lab1.vcxproj
+/TranslationMethods/lab1/lab1.vcxproj.filters
