@@ -38,15 +38,15 @@ namespace {
       dfa.init_matrix( 2 );
 
       // 0 --[a-zA-Z_]--> 1
-      for ( char c = 'a'; c <= 'z'; ++c ) dfa.matrix[0][dfa.symbol_to_index_map( c )] = 1;
-      for ( char c = 'A'; c <= 'Z'; ++c ) dfa.matrix[0][dfa.symbol_to_index_map( c )] = 1;
-      dfa.matrix[0][dfa.symbol_to_index_map( '_' )] = 1;
+      for ( char c = 'a'; c <= 'z'; ++c ) dfa.matrix[0][dfa.symbol_to_index_map[ c ]] = 1;
+      for ( char c = 'A'; c <= 'Z'; ++c ) dfa.matrix[0][dfa.symbol_to_index_map[ c ]] = 1;
+      dfa.matrix[0][dfa.symbol_to_index_map[ '_' ]] = 1;
 
       // 1 --[a-zA-Z0-9_]--> 1
-      for ( char c = 'a'; c <= 'z'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map( c )] = 1;
-      for ( char c = 'A'; c <= 'Z'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map( c )] = 1;
-      for ( char c = '0'; c <= '9'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map( c )] = 1;
-      dfa.matrix[1][dfa.symbol_to_index_map( '_' )] = 1;
+      for ( char c = 'a'; c <= 'z'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map[ c ]] = 1;
+      for ( char c = 'A'; c <= 'Z'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map[ c ]] = 1;
+      for ( char c = '0'; c <= '9'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map[ c ]] = 1;
+      dfa.matrix[1][dfa.symbol_to_index_map[ '_' ]] = 1;
 
       dfa.final_states.insert( 1 );
       dfa.state_to_token_type[1] = Token::IDENTIFIER;
@@ -61,8 +61,8 @@ namespace {
       dfa.init_matrix( 2 );
 
       for ( char c = '0'; c <= '9'; ++c ) {
-         dfa.matrix[0][dfa.symbol_to_index_map( c )] = 1;
-         dfa.matrix[1][dfa.symbol_to_index_map( c )] = 1;
+         dfa.matrix[0][dfa.symbol_to_index_map[ c ]] = 1;
+         dfa.matrix[1][dfa.symbol_to_index_map[ c ]] = 1;
       }
 
       dfa.final_states.insert( 1 );
@@ -70,7 +70,7 @@ namespace {
       return dfa;
    }
 
-   LexerDFA make_keyword_from_table( const StaticTable<string> &table, Token::Type type ) {
+   LexerDFA make_keyword_from_table( StaticTable<string> &table, Token::Type type ) {
       // trie-like DFA from a finite set of strings
       LexerDFA dfa;
       dfa.start_state = 0;
@@ -111,7 +111,7 @@ namespace {
       dfa.init_matrix( static_cast<int>(temp.size( )) );
       for ( int s = 0; s < static_cast<int>( temp.size( ) ); ++s ) {
          for ( const auto &[c, next] : temp[s] ) {
-            dfa.matrix[s][dfa.symbol_to_index_map( c )] = next;
+            dfa.matrix[s][dfa.symbol_to_index_map[ c ]] = next;
          }
       }
 
