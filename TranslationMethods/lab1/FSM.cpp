@@ -1,252 +1,312 @@
 #include "FSM.h"
+
 #include <algorithm>
 #include <cctype>
-#include <string>
-
-// ============= Scanner Implementation =============
+#include <stdexcept>
 
 using namespace std;
 
-Scanner::Scanner(const string& source)
-   : input(source), position(0), current_line(1), current_column(1) {
-   init_keywords();
-   init_dfas();
-}
+namespace {
 
-Token Scanner::next_token() {
-   skip_whitespace_and_comments();
-
-   if (position >= input.length()) {
-      return Token(Token::END_OF_FILE, "", current_line, current_column);
+   vector<char> make_identifier_symbols( ) {
+      vector<char> s;
+      for ( char c = 'a'; c <= 'z'; ++c ) s.push_back( c );
+      for ( char c = 'A'; c <= 'Z'; ++c ) s.push_back( c );
+      for ( char c = '0'; c <= '9'; ++c ) s.push_back( c );
+      s.push_back( '_' );
+      return s;
    }
 
-   Token token = try_recognize_with_dfas();
+   vector<char> make_integer_symbols( ) {
+      vector<char> s;
+      for ( char c = '0'; c <= '9'; ++c ) s.push_back( c );
+      return s;
+   }
 
-   position += token.lexeme.length();
-   update_line_column(token.lexeme);
+   void fill_symbol_index( LexerDFA &dfa ) {
+      dfa.symbol_to_index_map.clear( );
+      for ( int i = 0; i < static_cast<int>( dfa.symbols.size( ) ); ++i ) {
+         dfa.symbol_to_index_map[dfa.symbols[i]] = i;
+      }
+   }
+
+   LexerDFA make_identifier_dfa( ) {
+      LexerDFA dfa;
+      dfa.start_state = 0;
+      dfa.symbols = make_identifier_symbols( );
+      fill_symbol_index( dfa );
+      dfa.init_matrix( 2 );
+
+      // 0 --[a-zA-Z_]--> 1
+      for ( char c = 'a'; c <= 'z'; ++c ) dfa.matrix[0][dfa.symbol_to_index_map( c )] = 1;
+      for ( char c = 'A'; c <= 'Z'; ++c ) dfa.matrix[0][dfa.symbol_to_index_map( c )] = 1;
+      dfa.matrix[0][dfa.symbol_to_index_map( '_' )] = 1;
+
+      // 1 --[a-zA-Z0-9_]--> 1
+      for ( char c = 'a'; c <= 'z'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map( c )] = 1;
+      for ( char c = 'A'; c <= 'Z'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map( c )] = 1;
+      for ( char c = '0'; c <= '9'; ++c ) dfa.matrix[1][dfa.symbol_to_index_map( c )] = 1;
+      dfa.matrix[1][dfa.symbol_to_index_map( '_' )] = 1;
+
+      dfa.final_states.insert( 1 );
+      dfa.state_to_token_type[1] = Token::IDENTIFIER;
+      return dfa;
+   }
+
+   LexerDFA make_integer_dfa( ) {
+      LexerDFA dfa;
+      dfa.start_state = 0;
+      dfa.symbols = make_integer_symbols( );
+      fill_symbol_index( dfa );
+      dfa.init_matrix( 2 );
+
+      for ( char c = '0'; c <= '9'; ++c ) {
+         dfa.matrix[0][dfa.symbol_to_index_map( c )] = 1;
+         dfa.matrix[1][dfa.symbol_to_index_map( c )] = 1;
+      }
+
+      dfa.final_states.insert( 1 );
+      dfa.state_to_token_type[1] = Token::INTEGER_CONSTANT;
+      return dfa;
+   }
+
+   LexerDFA make_keyword_from_table( const StaticTable<string> &table, Token::Type type ) {
+      // trie-like DFA from a finite set of strings
+      LexerDFA dfa;
+      dfa.start_state = 0;
+
+      unordered_set<char> symbol_set;
+      for ( int i = 0; i < table.size( ); ++i ) {
+         const string word = table.get_element( i );
+         for ( char c : word ) symbol_set.insert( c );
+      }
+
+      dfa.symbols.assign( symbol_set.begin( ), symbol_set.end( ) );
+      sort( dfa.symbols.begin( ), dfa.symbols.end( ) );
+      fill_symbol_index( dfa );
+
+      vector<unordered_map<char, int>> temp( 1 );
+
+      for ( int i = 0; i < table.size( ); ++i ) {
+         const string word = table.get_element( i );
+         int state = 0;
+
+         for ( char c : word ) {
+            auto it = temp[state].find( c );
+            if ( it == temp[state].end( ) ) {
+               int new_state = static_cast<int>( temp.size( ) );
+               temp.emplace_back( );
+               temp[state][c] = new_state;
+               state = new_state;
+            }
+            else {
+               state = it->second;
+            }
+         }
+
+         dfa.final_states.insert( state );
+         dfa.state_to_token_type[state] = type;
+      }
+
+      dfa.init_matrix( static_cast<int>(temp.size( )) );
+      for ( int s = 0; s < static_cast<int>( temp.size( ) ); ++s ) {
+         for ( const auto &[c, next] : temp[s] ) {
+            dfa.matrix[s][dfa.symbol_to_index_map( c )] = next;
+         }
+      }
+
+      return dfa;
+   }
+
+} // namespace
+
+Scanner::Scanner(
+   const string &source,
+   const StaticTable<string> &keywords,
+   const StaticTable<string> &operators,
+   const StaticTable<string> &separators
+)
+   : input( source ),
+   keywords_table( keywords ),
+   operators_table( operators ),
+   separators_table( separators ) {
+   init_dfas( );
+}
+
+void Scanner::init_dfas( ) {
+   identifier_dfa = make_identifier_dfa( );
+   number_dfa = make_integer_dfa( );
+
+   // finite-set DFA
+   operator_dfa = make_keyword_from_table( operators_table, Token::OPERATOR );
+   separator_dfa = make_keyword_from_table( separators_table, Token::SEPARATOR );
+}
+
+void Scanner::skip_whitespace( ) {
+   while ( position < input.size( ) ) {
+      unsigned char c = static_cast<unsigned char>( input[position] );
+      if ( !std::isspace( c ) ) break;
+
+      if ( input[position] == '\n' ) {
+         ++current_line;
+         current_column = 1;
+      }
+      else {
+         ++current_column;
+      }
+      ++position;
+   }
+}
+
+bool Scanner::skip_line_comment( ) {
+   if ( position + 1 >= input.size( ) ) return false;
+   if ( input[position] != '/' || input[position + 1] != '/' ) return false;
+
+   while ( position < input.size( ) && input[position] != '\n' ) {
+      ++position;
+      ++current_column;
+   }
+   return true;
+}
+
+bool Scanner::skip_block_comment( ) {
+   if ( position + 1 >= input.size( ) ) return false;
+   if ( input[position] != '/' || input[position + 1] != '*' ) return false;
+
+   position += 2;
+   current_column += 2;
+
+   while ( position + 1 < input.size( ) ) {
+      if ( input[position] == '*' && input[position + 1] == '/' ) {
+         position += 2;
+         current_column += 2;
+         return true;
+      }
+
+      if ( input[position] == '\n' ) {
+         ++current_line;
+         current_column = 1;
+         ++position;
+      }
+      else {
+         ++position;
+         ++current_column;
+      }
+   }
+
+   // unterminated block comment: consume to end
+   position = input.size( );
+   return true;
+}
+
+void Scanner::skip_whitespace_and_comments( ) {
+   while ( true ) {
+      size_t old_pos = position;
+      int old_line = current_line;
+      int old_col = current_column;
+
+      skip_whitespace( );
+      if ( skip_line_comment( ) ) continue;
+      if ( skip_block_comment( ) ) continue;
+
+      if ( position == old_pos && current_line == old_line && current_column == old_col ) {
+         break;
+      }
+   }
+}
+
+Scanner::MatchResult Scanner::run_dfa( const LexerDFA &dfa ) const {
+   MatchResult result;
+   LexerDFA::State state = dfa.start_state;
+
+   size_t i = position;
+   size_t last_final_pos = position;
+   LexerDFA::State last_final_state = LexerDFA::DEAD;
+
+   while ( i < input.size( ) ) {
+      LexerDFA::State next = dfa.move( state, input[i] );
+      if ( next == LexerDFA::DEAD ) break;
+
+      state = next;
+      ++i;
+
+      if ( dfa.is_final( state ) ) {
+         last_final_state = state;
+         last_final_pos = i;
+      }
+   }
+
+   if ( last_final_state != LexerDFA::DEAD ) {
+      result.matched = true;
+      result.final_state = last_final_state;
+      result.type = dfa.state_to_token_type.at( last_final_state );
+      result.lexeme = input.substr( position, last_final_pos - position );
+   }
+
+   return result;
+}
+
+Token Scanner::try_recognize_with_dfas( ) {
+   const int token_line = current_line;
+   const int token_col = current_column;
+
+   MatchResult best;
+
+   auto choose_better = [&best]( const MatchResult &candidate ) {
+      if ( !candidate.matched ) return;
+      if ( !best.matched || candidate.lexeme.size( ) > best.lexeme.size( ) ) {
+         best = candidate;
+      }
+      };
+
+   choose_better( run_dfa( identifier_dfa ) );
+   choose_better( run_dfa( number_dfa ) );
+   choose_better( run_dfa( operator_dfa ) );
+   choose_better( run_dfa( separator_dfa ) );
+
+   if ( !best.matched ) {
+      return Token( Token::UNKNOWN, string( 1, input[position] ), token_line, token_col );
+   }
+
+   Token token( best.type, best.lexeme, token_line, token_col );
+
+   if ( best.type == Token::IDENTIFIER ) {
+      if ( keywords_table.is_contain( best.lexeme ) ) {
+         token.type = Token::KEYWORD;
+      }
+      else {
+         identifiers_table.add_elem( best.lexeme );
+      }
+   }
+   else if ( best.type == Token::INTEGER ) {
+      token.int_value = stoi( best.lexeme );
+      constants_table.add_elem( best.lexeme, token.int_value );
+   }
 
    return token;
 }
 
-void Scanner::init_keywords() {
-   keywords["if"] = Token::KEYWORD;
-   keywords["else"] = Token::KEYWORD;
-   keywords["while"] = Token::KEYWORD;
-   keywords["int"] = Token::KEYWORD;
-   keywords["float"] = Token::KEYWORD;
+Token Scanner::next_token( ) {
+   skip_whitespace_and_comments( );
+
+   if ( position >= input.size( ) ) {
+      return Token( Token::END_OF_FILE, "", current_line, current_column );
+   }
+
+   Token token = try_recognize_with_dfas( );
+   position += token.lexeme.size( );
+   update_line_column( token.lexeme );
+   return token;
 }
 
-void Scanner::init_dfas() {
-   identifier_dfa.start_state = 0;
-   identifier_dfa.transitions[0].push_back({
-      []( char c ) { return isalpha( c ) || c == '_'; },
-      1
-   });
-   identifier_dfa.transitions[1].push_back({
-      []( char c ) { return isalnum( c ) || c == '_'; },
-      1
-   });
-   identifier_dfa.final_states.insert(1);
-   identifier_dfa.state_to_token_type[1] = Token::IDENTIFIER;
-
-   number_dfa.start_state = 0;
-   number_dfa.transitions[0].push_back({
-      []( char c ) { return isdigit( c ); },
-      1
-   });
-   number_dfa.transitions[1].push_back({
-      []( char c ) { return isdigit( c ); },
-      1
-   });
-   number_dfa.transitions[1].push_back({
-      []( char c ) { return c == '.'; },
-      2
-   });
-   number_dfa.transitions[2].push_back({
-      []( char c ) { return isdigit( c ); },
-      3
-   });
-   number_dfa.transitions[3].push_back({
-      []( char c ) { return isdigit( c ); },
-      3
-   });
-
-   number_dfa.final_states.insert(1);
-   number_dfa.final_states.insert(3);
-   number_dfa.state_to_token_type[1] = Token::INTEGER;
-
-   operator_dfa.start_state = 0;
-   string operators = "+-*/=<>!";
-   for (char op : operators) {
-      operator_dfa.transitions[0].push_back({
-         [op]( char c ) { return c == op; },
-         1
-      });
-   }
-   operator_dfa.final_states.insert(1);
-   operator_dfa.state_to_token_type[1] = Token::OPERATOR;
-
-   separator_dfa.start_state = 0;
-   string separators = "(){}[];,";
-   for (char sep : separators) {
-      separator_dfa.transitions[0].push_back({
-         [sep]( char c ) { return c == sep; },
-         1
-      });
-   }
-   separator_dfa.final_states.insert(1);
-   separator_dfa.state_to_token_type[1] = Token::SEPARATOR;
-
-   // Пробельные символы
-   /*whitespace_dfa.start_state = 0;
-   whitespace_dfa.transitions[0].push_back({
-      []( char c ) { return isspace( c ); },
-      1
-   });
-   whitespace_dfa.transitions[1].push_back({
-      []( char c ) { return isspace( c ); },
-      1
-   });
-   whitespace_dfa.final_states.insert(1);
-   whitespace_dfa.state_to_token_type[1] = Token::WHITESPACE;*/
-
-   // Комментарии
-   /*comment_dfa.start_state = 0;
-   comment_dfa.transitions[0].push_back({
-      []( char c ) { return c == '/'; },
-      1
-   });
-   comment_dfa.transitions[1].push_back({
-      []( char c ) { return c == '/'; },
-      2
-   });
-   comment_dfa.transitions[2].push_back({
-      []( char c ) { return c != '\n'; },
-      2
-   });
-   comment_dfa.final_states.insert(2);
-   comment_dfa.state_to_token_type[2] = Token::COMMENT;*/
-}
-
-void Scanner::skip_whitespace_and_comments() {
-   while (position < input.length()) {
-      string whitespace = run_dfa(whitespace_dfa); // нужно убрать. Пробелы и комментарии пропускаем.
-      if (!whitespace.empty()) {
-         position += whitespace.length();
-         update_line_column(whitespace);
-         continue;
-      }
-
-      string comment = run_dfa(comment_dfa);
-      if (!comment.empty()) {
-         position += comment.length();
-         update_line_column(comment);
-         continue;
-      }
-
-      break;
-   }
-}
-
-string Scanner::run_dfa(const LexerDFA& dfa) {
-   LexerDFA::State current_state = dfa.start_state;
-   size_t start_pos = position;
-   size_t last_final_pos = start_pos;
-   LexerDFA::State last_final_state = -1;
-
-   for (size_t i = start_pos; i < input.length(); ++i) {
-      char c = input[i];
-
-      bool found = false;
-      for (const auto& trans : dfa.transitions.at(current_state)) {
-         if (trans.condition(c)) {
-            current_state = trans.next_state;
-            found = true;
-            break;
-         }
-      }
-
-      if (!found) break;
-
-      if (dfa.final_states.count(current_state)) {
-         last_final_pos = i + 1;
-         last_final_state = current_state;
-      }
-   }
-
-   if (last_final_state != -1) {
-      return input.substr(start_pos, last_final_pos - start_pos);
-   }
-   return "";
-}
-
-Token Scanner::try_recognize_with_dfas() {
-   string ident = run_dfa(identifier_dfa);
-   if (!ident.empty()) {
-      auto it = keywords.find(ident);
-      if (it != keywords.end()) {
-         return Token(it->second, ident, current_line, current_column);
-      }
-      else {
-         return Token(Token::IDENTIFIER, ident, current_line, current_column);
-      }
-   }
-
-   std::string num = run_dfa(number_dfa);
-   if (!num.empty()) {
-      Token t(Token::INTEGER, num, current_line, current_column);
-      t.int_value = std::stoi(num);
-
-      return t;
-   }
-
-   string op = run_dfa(operator_dfa);
-   if (!op.empty()) {
-      return Token(Token::OPERATOR, op, current_line, current_column);
-   }
-
-   string sep = run_dfa(separator_dfa);
-   if (!sep.empty()) {
-      return Token(Token::SEPARATOR, sep, current_line, current_column);
-   }
-
-   string unknown(1, input[position]);
-   return Token(Token::UNKNOWN, unknown, current_line, current_column);
-}
-
-void Scanner::update_line_column(const string& lexeme) {
-   for (char c : lexeme) {
-      if (c == '\n') {
-         current_line++;
+void Scanner::update_line_column( const string &lexeme ) {
+   for ( char c : lexeme ) {
+      if ( c == '\n' ) {
+         ++current_line;
          current_column = 1;
       }
       else {
-         current_column++;
+         ++current_column;
       }
    }
-}
-
-// ============= FSM Implementation =============
-
-int FSM::get_symbol_index(char symbol) {
-   auto it = find(symbols.begin(), symbols.end(), symbol);
-
-   if (it == symbols.end())
-      return -1;
-
-   return static_cast<int>(distance(symbols.begin(), it));
-}
-
-int FSM::process_symbol(char symbol) {
-   int symbol_index = get_symbol_index(symbol);
-
-   if (symbol_index == -1) {
-      if (find(final_states.begin(), final_states.end(), current_state) == final_states.end())
-         return -1;
-
-      return current_state;
-   }
-
-   current_state = table[current_state][symbol_index];
-   return current_state;
 }

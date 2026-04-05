@@ -11,7 +11,7 @@
 
 using std::vector;
 
-// 1. Токен - результат работы сканера
+// Токен
 struct Token {
    enum Type {
       ALPHABET = 0,
@@ -37,14 +37,16 @@ struct Token {
    }
 };
 
-// 2. ДКА для одного типа лексем
+// ДКА для одного типа лексем
 struct LexerDFA {
    using State = int;
-
+   
+   static constexpr State DEAD = -1;
    State start_state = 0;
 
-   std::vector<std::vector<State>> matrix;   // Матрица переходов
-   std::unordered_map<char, int> symbol_to_index;  // Соответствие символов к номерам
+   vector<std::vector<State>> matrix;   // Матрица переходов
+   vector<char> symbols;
+   std::unordered_map<char, int> symbol_to_index_map;  // Соответствие символов к номерам
    std::unordered_set<State> final_states;    // конечные состояния
    // Для каждого конечного состояния - какой токен он производит
    std::unordered_map<State, Token::Type> state_to_token_type;
@@ -54,10 +56,15 @@ struct LexerDFA {
       return final_states.find( s ) != final_states.end( );
    }
 
+   void init_matrix( int states_count ) 
+   {
+      matrix.assign( states_count, std::vector<State>( symbols.size( ), DEAD ) );
+   }
+
    int get_symbol_index( char symbol ) 
    {
-      auto it = symbol_to_index.find( symbol );
-      if ( it == symbol_to_index.end( ) )
+      auto it = symbol_to_index_map.find( symbol );
+      if ( it == symbol_to_index_map.end( ) )
          return -1;
 
       return it->second;
@@ -75,39 +82,54 @@ struct LexerDFA {
    }
 };
 
-// 3. Основной сканер, использующий набор ДКА
+// Сканер, использующий набор ДКА
 class Scanner {
 private:
-   // Входной текст
+   struct MatchResult {
+      bool matched = false;
+      Token::Type type = Token::END_OF_FILE;
+      std::string lexeme;
+      LexerDFA::State final_state = LexerDFA::DEAD;
+   };
+
    std::string input;
-   size_t position;
-   int current_line;
-   int current_column;
+   size_t position = 0;
+   int current_line = 1;
+   int current_column = 1;
 
-   // Таблица ключевых слов
-   std::unordered_map<std::string, Token::Type> keywords;
+   StaticTable<std::string> keywords_table;
+   StaticTable<std::string> operators_table;
+   StaticTable<std::string> separators_table;
 
-   // Набор ДКА для разных классов лексем
-   LexerDFA identifier_dfa;      // распознает [a-zA-Z_][a-zA-Z0-9_]*
-   LexerDFA number_dfa;          // распознает целые и вещественные числа
-   LexerDFA operator_dfa;        // распознает операторы (+, +=, ++, и т.д.)
-   LexerDFA separator_dfa;       // распознает разделители
+   DynamicTable identifiers_table;
+   DynamicTable constants_table;
 
-   // Не  распознаём - комментарии и пробелы исключаются на этапе сканера.
-   //LexerDFA whitespace_dfa;      // распознает пробельные символы
-   //LexerDFA comment_dfa;         // распознает комментарии
+   LexerDFA identifier_dfa;
+   LexerDFA number_dfa;
+   LexerDFA operator_dfa;
+   LexerDFA separator_dfa;
 
 public:
-   Scanner( const std::string &source );
+   Scanner(
+      const std::string &source,
+      const StaticTable<std::string> &keywords,
+      const StaticTable<std::string> &operators,
+      const StaticTable<std::string> &separators
+   );
 
    Token next_token( );
 
 private:
-   void init_keywords( );
    void init_dfas( );
+
+   void skip_whitespace( );
+   bool skip_line_comment( );
+   bool skip_block_comment( );
    void skip_whitespace_and_comments( );
-   std::string run_dfa( const LexerDFA &dfa );
+
+   MatchResult run_dfa( const LexerDFA &dfa ) const;
    Token try_recognize_with_dfas( );
+
    void update_line_column( const std::string &lexeme );
 };
 
