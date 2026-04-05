@@ -215,7 +215,7 @@ void Scanner::skip_whitespace_and_comments( ) {
    }
 }
 
-Scanner::MatchResult Scanner::run_dfa( const LexerDFA &dfa ) const {
+Scanner::MatchResult Scanner::run_dfa( LexerDFA &dfa ) const {
    MatchResult result;
    LexerDFA::State state = dfa.start_state;
 
@@ -265,7 +265,7 @@ Token Scanner::try_recognize_with_dfas( ) {
    choose_better( run_dfa( separator_dfa ) );
 
    if ( !best.matched ) {
-      return Token( Token::UNKNOWN, string( 1, input[position] ), token_line, token_col );
+      return Token( Token::ALPHABET, string( 1, input[position] ), token_line, token_col );
    }
 
    Token token( best.type, best.lexeme, token_line, token_col );
@@ -278,9 +278,9 @@ Token Scanner::try_recognize_with_dfas( ) {
          identifiers_table.add_elem( best.lexeme );
       }
    }
-   else if ( best.type == Token::INTEGER ) {
+   else if ( best.type == Token::INTEGER_CONSTANT ) {
       token.int_value = stoi( best.lexeme );
-      constants_table.add_elem( best.lexeme, token.int_value );
+      constants_table.add_elem( best.lexeme, token.int_value.value( ) );
    }
 
    return token;

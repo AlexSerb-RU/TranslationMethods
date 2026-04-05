@@ -127,7 +127,7 @@ private:
    bool skip_block_comment( );
    void skip_whitespace_and_comments( );
 
-   MatchResult run_dfa( const LexerDFA &dfa ) const;
+   MatchResult run_dfa( LexerDFA &dfa ) const;
    Token try_recognize_with_dfas( );
 
    void update_line_column( const std::string &lexeme );
