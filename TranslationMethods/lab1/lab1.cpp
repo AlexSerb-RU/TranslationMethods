@@ -1,8 +1,12 @@
 #include "DynamicTable.h"
 #include "StaticTable.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include "FSM.h"
 
-#include <iostream>
 
 using namespace std;
 
@@ -273,22 +277,89 @@ public:
 };
 
 
+//int main( )
+//{
+//   string out_filename = "out.txt";
+//   string words_fp = "input/words.txt";
+//
+//   auto words = StaticTable<string>( );
+//   words.read_file( words_fp );
+//   cout << "\nwords: find switch: id: " << words.find( "switch" ) << "\n";
+//   cout << "\nwords: find abcde: id: " << words.find( "abcde" ) << "\n";
+//
+//   auto table = DynamicTable();
+//
+//   ofstream output( out_filename );
+//
+//   ConsoleApp<lex> App( cout, output, table );
+//
+//   App.loop( );
+//
+//}
+
+std::string read_file( const std::string &path ) {
+   std::ifstream in( path );
+   if ( !in ) {
+      throw std::runtime_error( "Cannot open file: " + path );
+   }
+
+   std::ostringstream buffer;
+   buffer << in.rdbuf( );
+   return buffer.str( );
+}
+
+std::string token_type_to_string( Token::Type type ) {
+   switch ( type ) {
+      case Token::IDENTIFIER: return "IDENTIFIER";
+      case Token::KEYWORD: return "KEYWORD";
+      case Token::INTEGER_CONSTANT: return "INTEGER";
+      case Token::CUSTOM_CONSTANT: return "CONSTANT";
+      case Token::OPERATOR: return "OPERATOR";
+      case Token::SEPARATOR: return "SEPARATOR";
+      case Token::END_OF_FILE: return "END_OF_FILE";
+      default: return "UNDEFINED_TOKEN_TYPE";
+   }
+}
+
+
 int main( )
 {
-   string out_filename = "out.txt";
-   string words_fp = "input/words.txt";
+   try {
+      const std::string test_name = "../tests/1.cpp";
 
-   auto words = StaticTable<string>( );
-   words.read_file( words_fp );
-   cout << "\nwords: find switch: id: " << words.find( "switch" ) << "\n";
-   cout << "\nwords: find abcde: id: " << words.find( "abcde" ) << "\n";
+      const std::string source = read_file( test_name );
 
-   auto table = DynamicTable();
+      string keywords_path = "../tables/keywords.txt";
+      string operators_path = "../tables/operators.txt";
+      string separators_path = "../tables/separators.txt";
+      StaticTable<std::string> keywords;
+      StaticTable<std::string> operators;
+      StaticTable<std::string> separators;
+      keywords.read_file( keywords_path );
+      operators.read_file( operators_path );
+      separators.read_file( separators_path );
 
-   ofstream output( out_filename );
+      Scanner scanner( source, keywords, operators, separators );
 
-   ConsoleApp<lex> App( cout, output, table );
+      while ( true ) {
+         Token token = scanner.next_token( );
 
-   App.loop( );
+         std::cout
+            << token_type_to_string( token.type )
+            << " | \"" << token.lexeme << "\""
+            << " | line = " << token.line
+            << ", column = " << token.column
+            << '\n';
 
+         if ( token.type == Token::END_OF_FILE ) {
+            break;
+         }
+      }
+   }
+   catch ( const std::exception &ex ) {
+      std::cerr << "Error: " << ex.what( ) << '\n';
+      return 1;
+   }
+
+   return 0;
 }
