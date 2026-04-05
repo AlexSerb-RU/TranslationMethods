@@ -14,26 +14,23 @@ using std::vector;
 // 1. Токен - результат работы сканера
 struct Token {
    enum Type {
-      IDENTIFIER = 0,    // идентификатор
+      ALPHABET = 0,
+      IDENTIFIER,    // идентификатор
       KEYWORD,           // ключевое слово
-      INTEGER,           // целая константа
-      CONSTANT,          // именованая константа (только int)
+      INTEGER_CONSTANT,           // целая константа
+      CUSTOM_CONSTANT,          // именованая константа (только int)
       OPERATOR,          // оператор (+, -, *, /, =, ...)
       SEPARATOR,         // разделитель (;, ,, (, ), {, }, ...) + комментарий
-      UNKNOWN,           // неизвестный символ
       END_OF_FILE      // конец файла
    };
 
    Type type;
    std::string lexeme;     // распознанная лексема
-   int line;               // строка (для ошибок)
-   int column;             // колонка (для ошибок)
+   int line;               // строка
+   int column;             // колонка начала лексемы
 
    // Для чисел можно хранить значение
-   union {
-      int int_value;
-      double float_value;
-   };
+   std::optional<int> int_value;
 
    Token( Type t, const std::string &lex, int l, int c )
       : type( t ), lexeme( lex ), line( l ), column( c ) {
@@ -44,17 +41,38 @@ struct Token {
 struct LexerDFA {
    using State = int;
 
-   struct Transition {
-      std::function<bool( char )> condition;
-      State next_state;
-   };
+   State start_state = 0;
 
-   State start_state;
+   std::vector<std::vector<State>> matrix;   // Матрица переходов
+   std::unordered_map<char, int> symbol_to_index;  // Соответствие символов к номерам
    std::unordered_set<State> final_states;    // конечные состояния
-   std::unordered_map<State, std::vector<Transition>> transitions;
-
    // Для каждого конечного состояния - какой токен он производит
    std::unordered_map<State, Token::Type> state_to_token_type;
+
+   bool is_final( State s )
+   {
+      return final_states.find( s ) != final_states.end( );
+   }
+
+   int get_symbol_index( char symbol ) 
+   {
+      auto it = symbol_to_index.find( symbol );
+      if ( it == symbol_to_index.end( ) )
+         return -1;
+
+      return it->second;
+   }
+
+   State move( State state, char symbol )
+   {
+      int idx = get_symbol_index( symbol );
+      if ( idx == -1 )
+         return -1;
+
+      State new_state = matrix[state][idx];
+
+      return new_state;
+   }
 };
 
 // 3. Основной сканер, использующий набор ДКА
