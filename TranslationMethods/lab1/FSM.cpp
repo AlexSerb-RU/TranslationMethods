@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <stdexcept>
+#include <iostream>
 
 using namespace std;
 
@@ -51,6 +52,10 @@ namespace {
       dfa.final_states.insert( 1 );
       dfa.state_to_token_type[1] = Token::IDENTIFIER;
       return dfa;
+   }
+
+   LexerDFA make_custom_const_dfa( )
+   {
    }
 
    LexerDFA make_integer_dfa( ) {
@@ -124,17 +129,26 @@ Scanner::Scanner(
    const string &source,
    const StaticTable<string> &keywords,
    const StaticTable<string> &operators,
-   const StaticTable<string> &separators
+   const StaticTable<string> &separators,
+   const string &error_log_path
 )
    : input( source ),
    keywords_table( keywords ),
    operators_table( operators ),
-   separators_table( separators ) {
+   separators_table( separators ) 
+{
    init_dfas( );
+   error_stream.open( error_log_path ); // открываем файл для записи ошибок
+}
+
+void Scanner::write_error( int line, int column, const string lexeme, const string msg )
+{
+   error_stream << "Error at line " << line << ", column " << column << ": " << msg << " (lexeme: '" << lexeme << "')" << endl;
 }
 
 void Scanner::init_dfas( ) {
    identifier_dfa = make_identifier_dfa( );
+   //custom_const_dfa = make_
    number_dfa = make_integer_dfa( );
 
    // finite-set DFA
@@ -169,21 +183,25 @@ bool Scanner::skip_line_comment( ) {
    return true;
 }
 
-bool Scanner::skip_block_comment( ) {
+bool Scanner::skip_block_comment( )
+{
    if ( position + 1 >= input.size( ) ) return false;
    if ( input[position] != '/' || input[position + 1] != '*' ) return false;
 
    position += 2;
    current_column += 2;
 
-   while ( position + 1 < input.size( ) ) {
-      if ( input[position] == '*' && input[position + 1] == '/' ) {
+   while ( position + 1 < input.size( ) )
+   {
+      if ( input[position] == '*' && input[position + 1] == '/' )
+      {
          position += 2;
          current_column += 2;
          return true;
       }
 
-      if ( input[position] == '\n' ) {
+      if ( input[position] == '\n' )
+      {
          ++current_line;
          current_column = 1;
          ++position;
@@ -194,9 +212,9 @@ bool Scanner::skip_block_comment( ) {
       }
    }
 
-   // unterminated block comment: consume to end
-   position = input.size( );
-   return true;
+   // unterminated block comment
+   write_error( current_line, current_column, "", "Unterminated block comment" );
+   exit( 1 );
 }
 
 void Scanner::skip_whitespace_and_comments( ) {
@@ -209,9 +227,7 @@ void Scanner::skip_whitespace_and_comments( ) {
       if ( skip_line_comment( ) ) continue;
       if ( skip_block_comment( ) ) continue;
 
-      if ( position == old_pos && current_line == old_line && current_column == old_col ) {
-         break;
-      }
+      if ( position == old_pos && current_line == old_line && current_column == old_col ) break;
    }
 }
 
@@ -223,20 +239,23 @@ Scanner::MatchResult Scanner::run_dfa( LexerDFA &dfa ) const {
    size_t last_final_pos = position;
    LexerDFA::State last_final_state = LexerDFA::DEAD;
 
-   while ( i < input.size( ) ) {
+   while ( i < input.size( ) )
+   {
       LexerDFA::State next = dfa.move( state, input[i] );
       if ( next == LexerDFA::DEAD ) break;
 
       state = next;
       ++i;
 
-      if ( dfa.is_final( state ) ) {
+      if ( dfa.is_final( state ) )
+      {
          last_final_state = state;
          last_final_pos = i;
       }
    }
 
-   if ( last_final_state != LexerDFA::DEAD ) {
+   if ( last_final_state != LexerDFA::DEAD )
+   {
       result.matched = true;
       result.final_state = last_final_state;
       result.type = dfa.state_to_token_type.at( last_final_state );
@@ -264,11 +283,16 @@ Token Scanner::try_recognize_with_dfas( ) {
    choose_better( run_dfa( operator_dfa ) );
    choose_better( run_dfa( separator_dfa ) );
 
-   if ( !best.matched ) {
-      return Token( Token::ALPHABET, string( 1, input[position] ), token_line, token_col );
+   if ( !best.matched ) 
+   {
+      write_error( token_line, token_col, string( 1, input[position] ), "Unrecognized symbol" );
+      exit( 1 );
    }
-
+   
    Token token( best.type, best.lexeme, token_line, token_col );
+   
+   int idx_in_table = -1;
+   lex buf;
 
    if ( best.type == Token::IDENTIFIER ) {
       if ( keywords_table.is_contain( best.lexeme ) ) {
@@ -276,13 +300,25 @@ Token Scanner::try_recognize_with_dfas( ) {
       }
       else {
          identifiers_table.add_elem( best.lexeme );
+         idx_in_table = identifiers_table.find_lex( best.lexeme, buf );
       }
+
    }
    else if ( best.type == Token::INTEGER_CONSTANT ) {
+      auto next_pos = position + best.lexeme.size( );
+      //std::cout << "next pos: " << input[next_pos] << std::endl;
+      // ERROR HANDLING "123abc"
+      if ( next_pos < input.size( ) && ( std::isalnum( static_cast<unsigned char>( input[next_pos] ) ) || input[next_pos] == '_' ) ) 
+      {
+         write_error( token_line, token_col, best.lexeme + input[next_pos], "Invalid integer constant" );
+         exit( 1 );
+      }
+      idx_in_table = identifiers_table.find_lex( best.lexeme, buf );
       token.int_value = stoi( best.lexeme );
       constants_table.add_elem( best.lexeme, token.int_value.value( ) );
    }
 
+   token.idx_in_table = idx_in_table;
    return token;
 }
 

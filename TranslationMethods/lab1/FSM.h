@@ -9,7 +9,8 @@
 #include "StaticTable.h"
 #include "DynamicTable.h"
 
-using std::vector;
+//using std::vector;
+using namespace std;
 
 // Токен
 struct Token {
@@ -25,14 +26,16 @@ struct Token {
    };
 
    Type type;
-   std::string lexeme;     // распознанная лексема
+   string lexeme;     // распознанная лексема
    int line;               // строка
    int column;             // колонка начала лексемы
+
+   int idx_in_table = -1; // индекс в таблице (для идентификаторов и констант)
 
    // Для чисел можно хранить значение
    std::optional<int> int_value;
 
-   Token( Type t, const std::string &lex, int l, int c )
+   Token( Type t, const string &lex, int l, int c )
       : type( t ), lexeme( lex ), line( l ), column( c ) {
    }
 };
@@ -88,18 +91,20 @@ private:
    struct MatchResult {
       bool matched = false;
       Token::Type type = Token::END_OF_FILE;
-      std::string lexeme;
+      string lexeme;
       LexerDFA::State final_state = LexerDFA::DEAD;
    };
 
-   std::string input;
+   std::ofstream error_stream;
+
+   string input;
    size_t position = 0;
    int current_line = 1;
    int current_column = 1;
 
-   StaticTable<std::string> keywords_table;
-   StaticTable<std::string> operators_table;
-   StaticTable<std::string> separators_table;
+   StaticTable<string> keywords_table;
+   StaticTable<string> operators_table;
+   StaticTable<string> separators_table;
 
    DynamicTable identifiers_table;
    DynamicTable constants_table;
@@ -111,10 +116,11 @@ private:
 
 public:
    Scanner(
-      const std::string &source,
-      const StaticTable<std::string> &keywords,
-      const StaticTable<std::string> &operators,
-      const StaticTable<std::string> &separators
+      const string &source,
+      const StaticTable<string> &keywords,
+      const StaticTable<string> &operators,
+      const StaticTable<string> &separators,
+      const string &error_log_path = "errors.log"
    );
 
    Token next_token( );
@@ -122,6 +128,7 @@ public:
 private:
    void init_dfas( );
 
+   void write_error( int line, int column, const string lexeme, const string msg );
    void skip_whitespace( );
    bool skip_line_comment( );
    bool skip_block_comment( );
@@ -130,133 +137,5 @@ private:
    MatchResult run_dfa( LexerDFA &dfa ) const;
    Token try_recognize_with_dfas( );
 
-   void update_line_column( const std::string &lexeme );
-};
-
-class FSM
-{
-private:
-   int current_state;
-
-   vector<vector<int>> table;
-   /// state | symbol1 | symbol2 | symbol3
-   ///  st1  | next_st | -//-    | -//-
-   ///  st2  | next_st | -//-    | -//-
-
-   vector<char> symbols;  // список символов, по которым происходит переход
-   vector<int> final_states;
-   std::vector<std::unordered_map<char, int>> transitions_map;
-
-   int get_symbol_index( char symbol );
-
-   template <typename T>
-   void build_table( const StaticTable<T> &st )
-   {
-      transitions_map.clear( );
-      transitions_map.emplace_back( );
-
-      int idx = 0;
-      while ( true )
-      {
-         T word = st.get_element( idx++ );
-         if ( word == T( ) ) break;
-
-         int state = 0;
-         for ( char ch : word )
-         {
-            auto &m = transitions_map[state];
-            auto it = m.find( ch );
-            if ( it == m.end( ) )
-            {
-               int new_state = static_cast<int>(transitions_map.size( ));
-               transitions_map.emplace_back( );
-               m[ch] = new_state;
-               state = new_state;
-            }
-            else
-            {
-               state = it->second;
-            }
-         }
-      }
-   }
-
-   template <typename T>
-   void build_final_states( const StaticTable<T> &st )
-   {
-      final_states.clear( );
-
-      int idx = 0;
-      while ( true )
-      {
-         T word = st.get_element( idx++ );
-         if ( word == T( ) ) break;
-
-         int state = 0;
-         bool ok = true;
-         for ( char ch : word )
-         {
-            auto &m = transitions_map[state];
-            auto it = m.find( ch );
-            if ( it == m.end( ) )
-            {
-               ok = false;
-               break;
-            }
-            state = it->second;
-         }
-         if ( ok )
-            final_states.push_back( state );
-      }
-
-      std::sort( final_states.begin( ), final_states.end( ) );
-      final_states.erase( std::unique( final_states.begin( ), final_states.end( ) ), final_states.end( ) );
-   }
-
-   template <typename T>
-   void fill_up_symbols( const StaticTable<T> &table_static )
-   {
-      std::unordered_set<char> symset;
-      for ( const auto &m : transitions_map )
-      {
-         for ( const auto &p : m )
-            symset.insert( p.first );
-      }
-
-      symbols.assign( symset.begin( ), symset.end( ) );
-      std::sort( symbols.begin( ), symbols.end( ) );
-
-      size_t states_count = transitions_map.size( );
-      size_t symbols_count = symbols.size( );
-
-      table.assign( static_cast<int>(states_count), vector<int>( static_cast<int>(symbols_count), 0 ) );
-
-      for ( size_t s = 0; s < states_count; ++s )
-      {
-         for ( const auto &p : transitions_map[s] )
-         {
-            char ch = p.first;
-            int next_state = p.second;
-            auto it = std::find( symbols.begin( ), symbols.end( ), ch );
-            if ( it != symbols.end( ) )
-            {
-               int col = static_cast<int>( std::distance( symbols.begin( ), it ) );
-               table[static_cast<int>( s )][col] = next_state;
-            }
-         }
-      }
-   }
-
-public:
-   template <typename T>
-   FSM( StaticTable<T> table )
-   {
-      build_table( table );
-      build_final_states( table );
-      fill_up_symbols( table );
-   }
-
-   int process_symbol( char symbol );
-
-
+   void update_line_column( const string &lexeme );
 };

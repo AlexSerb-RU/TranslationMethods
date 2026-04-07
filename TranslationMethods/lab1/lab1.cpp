@@ -313,7 +313,7 @@ std::string token_type_to_string( Token::Type type ) {
       case Token::IDENTIFIER: return "IDENTIFIER";
       case Token::KEYWORD: return "KEYWORD";
       case Token::INTEGER_CONSTANT: return "INTEGER";
-      case Token::CUSTOM_CONSTANT: return "CONSTANT";
+      //case Token::CUSTOM_CONSTANT: return "CONSTANT";
       case Token::OPERATOR: return "OPERATOR";
       case Token::SEPARATOR: return "SEPARATOR";
       case Token::END_OF_FILE: return "END_OF_FILE";
@@ -324,11 +324,15 @@ std::string token_type_to_string( Token::Type type ) {
 
 int main( )
 {
+
+   int a = 3 == 2;
+   std::cout << a;
    try {
       const std::string test_name = "../tests/1.cpp";
 
       const std::string source = read_file( test_name );
 
+      // StaticTable init
       string keywords_path = "../tables/keywords.txt";
       string operators_path = "../tables/operators.txt";
       string separators_path = "../tables/separators.txt";
@@ -339,27 +343,44 @@ int main( )
       operators.read_file( operators_path );
       separators.read_file( separators_path );
 
+      ofstream token_stream;
+      string path_token_stream = "../out/token.txt";
+      token_stream.open( path_token_stream );
+
       Scanner scanner( source, keywords, operators, separators );
+
+      int prev_line = -1;
 
       while ( true ) {
          Token token = scanner.next_token( );
 
-         std::cout
+         
+         if ( prev_line != token.line )
+         {
+            std::cout << endl << token.line << ": ";
+            prev_line = token.line;
+         }
+         std::cout << "( " << token.type << ", " << token.idx_in_table << " ) ";
+
+         /*std::cout
             << token_type_to_string( token.type )
             << " | \"" << token.lexeme << "\""
             << " | line = " << token.line
             << ", column = " << token.column
-            << '\n';
+            << '\n';*/
 
          if ( token.type == Token::END_OF_FILE ) {
             break;
          }
       }
+      token_stream.close( );
    }
    catch ( const std::exception &ex ) {
       std::cerr << "Error: " << ex.what( ) << '\n';
       return 1;
    }
+
+   
 
    return 0;
 }

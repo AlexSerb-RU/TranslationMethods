@@ -1,0 +1,7 @@
+int
+switch
+case
+default
+break
+const
+void
