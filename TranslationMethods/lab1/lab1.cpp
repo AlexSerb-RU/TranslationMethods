@@ -360,7 +360,7 @@ int main( )
             std::cout << endl << token.line << ": ";
             prev_line = token.line;
          }
-         std::cout << "( " << token.type << ", " << token.idx_in_table << " ) ";
+         std::cout << "( " << token.idx_of_table << ", " << token.idx_in_table << " ) ";
 
          /*std::cout
             << token_type_to_string( token.type )

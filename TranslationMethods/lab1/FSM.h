@@ -30,6 +30,7 @@ struct Token {
    int line;               // строка
    int column;             // колонка начала лексемы
 
+   int idx_of_table = -1;
    int idx_in_table = -1; // индекс в таблице (для идентификаторов и констант)
 
    // Для чисел можно хранить значение
@@ -102,12 +103,12 @@ private:
    int current_line = 1;
    int current_column = 1;
 
-   StaticTable<string> keywords_table;
-   StaticTable<string> operators_table;
-   StaticTable<string> separators_table;
+   StaticTable<string> keywords_table;  // 0
+   StaticTable<string> operators_table;  // 1
+   StaticTable<string> separators_table;  // 2
 
-   DynamicTable identifiers_table;
-   DynamicTable constants_table;
+   DynamicTable identifiers_table;  // 3
+   DynamicTable constants_table;  // 4
 
    LexerDFA identifier_dfa;
    LexerDFA number_dfa;

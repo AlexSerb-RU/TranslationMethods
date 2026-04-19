@@ -299,7 +299,7 @@ Token Scanner::try_recognize_with_dfas( ) {
          token.type = Token::KEYWORD;
       }
       else {
-         identifiers_table.add_elem( best.lexeme );
+         identifiers_table.add_elem( best.lexeme, LEX_TYPE::ID );
          idx_in_table = identifiers_table.find_lex( best.lexeme, buf );
       }
 
@@ -315,7 +315,39 @@ Token Scanner::try_recognize_with_dfas( ) {
       }
       idx_in_table = identifiers_table.find_lex( best.lexeme, buf );
       token.int_value = stoi( best.lexeme );
-      constants_table.add_elem( best.lexeme, token.int_value.value( ) );
+      constants_table.add_elem( best.lexeme, token.int_value.value( ), LEX_TYPE::CONSTANT );
+   }
+
+   switch ( token.type )
+   {
+      case Token::CUSTOM_CONSTANT: case Token::IDENTIFIER:
+      {
+         token.idx_of_table = 3;
+         break;
+      }
+      case Token::INTEGER_CONSTANT:
+      {
+         token.idx_of_table = 4;
+         break;
+      }
+      case Token::KEYWORD:
+      {
+         token.idx_of_table = 0;
+         idx_in_table = keywords_table.find( best.lexeme );
+         break;
+      }
+      case Token::OPERATOR:
+      {
+         token.idx_of_table = 1;
+         idx_in_table = operators_table.find( best.lexeme );
+         break;
+      }
+      case Token::SEPARATOR:
+      {
+         token.idx_of_table = 2;
+         idx_in_table = separators_table.find( best.lexeme );
+         break;
+      }
    }
 
    token.idx_in_table = idx_in_table;
