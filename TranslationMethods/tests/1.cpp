@@ -6,7 +6,7 @@ int main( )
    
    int a = 2;
    
-   const con = 2;
+   const int con = 2;
 	
    switch (c)
    {

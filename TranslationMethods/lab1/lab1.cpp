@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include "FSM.h"
+#include "parser.h"
 
 
 using namespace std;
@@ -343,37 +344,20 @@ int main( )
       operators.read_file( operators_path );
       separators.read_file( separators_path );
 
-      ofstream token_stream;
-      string path_token_stream = "../out/token.txt";
-      token_stream.open( path_token_stream );
-
       Scanner scanner( source, keywords, operators, separators );
 
-      int prev_line = -1;
+      // prepare output files for postfix and errors
+      string postfix_path = "../out/postfix.txt";
+      string errors_path = "../out/errors.txt";
+      ofstream postfix_stream(postfix_path);
+      ofstream errors_stream(errors_path);
 
-      while ( true ) {
-         Token token = scanner.next_token( );
+      Emitter emitter(postfix_stream, errors_stream);
+      Parser parser(scanner, emitter);
+      parser.parseTranslationUnit();
 
-         
-         if ( prev_line != token.line )
-         {
-            std::cout << endl << token.line << ": ";
-            prev_line = token.line;
-         }
-         std::cout << "( " << token.idx_of_table << ", " << token.idx_in_table << " ) ";
-
-         /*std::cout
-            << token_type_to_string( token.type )
-            << " | \"" << token.lexeme << "\""
-            << " | line = " << token.line
-            << ", column = " << token.column
-            << '\n';*/
-
-         if ( token.type == Token::END_OF_FILE ) {
-            break;
-         }
-      }
-      token_stream.close( );
+      postfix_stream.close();
+      errors_stream.close();
    }
    catch ( const std::exception &ex ) {
       std::cerr << "Error: " << ex.what( ) << '\n';
