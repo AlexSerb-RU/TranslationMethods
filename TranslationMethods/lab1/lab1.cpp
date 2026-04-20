@@ -333,7 +333,7 @@ int main( )
 
       const std::string source = read_file( test_name );
 
-      // StaticTable init
+	  // StaticTable инициализация таблиц для ключевых слов, операторов и разделителей
       string keywords_path = "../tables/keywords.txt";
       string operators_path = "../tables/operators.txt";
       string separators_path = "../tables/separators.txt";
@@ -346,7 +346,7 @@ int main( )
 
       Scanner scanner( source, keywords, operators, separators );
 
-      // prepare output files for postfix and errors
+	  // погтовка потоков для вывода результатов
       string postfix_path = "../out/postfix.txt";
       string errors_path = "../out/errors.txt";
       ofstream postfix_stream(postfix_path);

@@ -17,35 +17,35 @@ private:
     Token lookahead2;
 
     void nextToken();
-    bool match(Token::Type type, const std::string &lexeme = "");
-    Token expect(Token::Type type, const std::string &lexeme = "");
+    bool match(Token::Type type, const std::string &lexeme = ""); 
+    Token expect(Token::Type type, const std::string &lexeme = ""); 
 
     // грамматика
-    void parseExternalDeclaration();
-    void parseDeclaration();
-    void parseDeclarationSpecifier();
-    void parseInitDeclaratorList();
-    void parseInitDeclarator();
-    void parseMainFunctionDefinition();
+	void parseExternalDeclaration(); // поддерживаются объявления и главная функция
+	void parseDeclaration(); // поддерживается только объявление переменных 
+	void parseDeclarationSpecifier(); // поддерживается только 'int' и 'const'
+	void parseInitDeclaratorList(); // поддерживается только список инициализаторов-деклараторов для переменных
+	void parseInitDeclarator(); // поддерживается только инициализатор-декларатор для переменных (id [= присваивание])
+    void parseMainFunctionDefinition(); // поддерживается только определение главной функции
 
-    void parseStatement();
-    void parseExpressionStatement();
-    void parseCompoundStatement();
-    void parseSwitchStatement();
-    void parseSwitchItems(std::vector<std::tuple<bool,int,std::string>> &clauses); // (isDefault, value, body)
-    void parseCaseClause(std::vector<std::tuple<bool,int,std::string>> &clauses);
-    void parseDefaultClause(std::vector<std::tuple<bool,int,std::string>> &clauses);
-    void parseBreakStatement();
-    void parseReturnStatement();
+	void parseStatement(); // поддерживаются выражение-оператор, составной оператор, switch, break и return
+	void parseExpressionStatement(); // поддерживается выражение-оператор
+	void parseCompoundStatement(); // поддерживается составной оператор 
+    void parseSwitchStatement(); // поддерживается оператор switch
+    void parseSwitchItems(std::vector<std::tuple<bool,int,std::string>> &clauses); // поддерживаются элементы switch
+    void parseCaseClause(std::vector<std::tuple<bool,int,std::string>> &clauses); // поддерживается оператор case
+    void parseDefaultClause(std::vector<std::tuple<bool,int,std::string>> &clauses); // поддерживается оператор default
+    void parseBreakStatement(); // поддерживается оператор break
+    void parseReturnStatement(); // поддерживается оператор return
 
     // выражения
-    void parseExpression();
-    void parseAssignmentExpression();
-    void parseEqualityExpression();
-    void parseRelationalExpression();
-    void parseAdditiveExpression();
-    void parseMultiplicativeExpression();
-    void parsePrimaryExpression();
+	void parseExpression(); // поддерживается выражение-оператор (присваивание и ниже)
+    void parseAssignmentExpression(); // поддерживается присваивание
+    void parseEqualityExpression(); // поддерживается сравнение
+    void parseRelationalExpression(); // поддерживается реляционное выражение
+    void parseAdditiveExpression(); // поддерживается сложение и вычитание
+    void parseMultiplicativeExpression(); // поддерживается умножение и деление
+    void parsePrimaryExpression(); // поддерживается первичное выражение
 
     // утилиты
     void writeError(const Token &t, const std::string &msg);
