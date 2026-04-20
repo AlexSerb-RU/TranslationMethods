@@ -286,7 +286,6 @@ Token Scanner::try_recognize_with_dfas( ) {
    if ( !best.matched ) 
    {
       write_error( token_line, token_col, string( 1, input[position] ), "Unrecognized symbol" );
-      exit( 1 );
    }
    
    Token token( best.type, best.lexeme, token_line, token_col );
@@ -311,7 +310,6 @@ Token Scanner::try_recognize_with_dfas( ) {
       if ( next_pos < input.size( ) && ( std::isalnum( static_cast<unsigned char>( input[next_pos] ) ) || input[next_pos] == '_' ) ) 
       {
          write_error( token_line, token_col, best.lexeme + input[next_pos], "Invalid integer constant" );
-         exit( 1 );
       }
       idx_in_table = identifiers_table.find_lex( best.lexeme, buf );
       token.int_value = stoi( best.lexeme );
