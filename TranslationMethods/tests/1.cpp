@@ -1,8 +1,10 @@
 int main( )
 {
+   // данные типа int;
+   /* dew 
    int a = 1;
    int b = 2;
-   int c = a + b;
+   int c = 3;
    
    int a = 2;
    

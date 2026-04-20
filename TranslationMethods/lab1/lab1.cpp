@@ -356,6 +356,7 @@ int main( )
       Parser parser(scanner, emitter);
       parser.parseTranslationUnit();
 
+
       postfix_stream.close();
       errors_stream.close();
    }
