@@ -376,3 +376,14 @@ void Scanner::update_line_column( const string &lexeme ) {
       }
    }
 }
+
+std::vector<Token> Scanner::tokenize() {
+   std::vector<Token> tokens;
+   Token token = next_token();
+   while (token.type != Token::END_OF_FILE) {
+      tokens.push_back(token);
+      token = next_token();
+   }
+   tokens.push_back(token); // добавить EOF токен в конец
+   return tokens;
+}

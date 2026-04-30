@@ -125,6 +125,7 @@ public:
    );
 
    Token next_token( );
+   std::vector<Token> tokenize();
 
 private:
    void init_dfas( );

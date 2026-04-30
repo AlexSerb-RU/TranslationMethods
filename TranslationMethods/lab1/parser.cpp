@@ -2,16 +2,25 @@
 #include <iostream>
 #include <sstream>
 
-Parser::Parser(Scanner& scanner_, Emitter& emitter_) : scanner(scanner_), em(emitter_), lookahead(Token::END_OF_FILE, "", 0, 0), lookahead2(Token::END_OF_FILE, "", 0, 0) {
+Parser::Parser(const std::vector<Token>& tokens_, Emitter& emitter_) 
+    : tokens(tokens_), pos(0), em(emitter_), lookahead(Token::END_OF_FILE, "", 0, 0), lookahead2(Token::END_OF_FILE, "", 0, 0) {
     // предварительный просмотр инициализируется двумя токенами
-    lookahead = scanner.next_token();
-    lookahead2 = scanner.next_token();
+    if (pos < tokens.size()) {
+        lookahead = tokens[pos++];
+    }
+    if (pos < tokens.size()) {
+        lookahead2 = tokens[pos++];
+    }
 }
 
 void Parser::nextToken() {
     // выполняется переход на один токен
     lookahead = lookahead2;
-    lookahead2 = scanner.next_token();
+    if (pos < tokens.size()) {
+        lookahead2 = tokens[pos++];
+    } else {
+        lookahead2 = Token(Token::END_OF_FILE, "", 0, 0);
+    }
 }
 
 bool Parser::match(Token::Type type, const std::string& lexeme) {

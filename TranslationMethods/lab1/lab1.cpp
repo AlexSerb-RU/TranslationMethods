@@ -344,17 +344,22 @@ int main( )
       operators.read_file( operators_path );
       separators.read_file( separators_path );
 
-      Scanner scanner( source, keywords, operators, separators );
+	  Scanner scanner( source, keywords, operators, separators );
+
+	  // Фаза 1: лексический анализ (токенизация)
+	  std::vector<Token> tokens = scanner.tokenize();
 
 	  // погтовка потоков для вывода результатов
-      string postfix_path = "../out/postfix.txt";
-      string errors_path = "../out/errors.txt";
-      ofstream postfix_stream(postfix_path);
-      ofstream errors_stream(errors_path);
+	  string postfix_path = "../out/postfix.txt";
+	  string errors_path = "../out/errors.txt";
+	  ofstream postfix_stream(postfix_path);
+	  ofstream errors_stream(errors_path);
 
-      Emitter emitter(postfix_stream, errors_stream);
-      Parser parser(scanner, emitter);
-      parser.parseTranslationUnit();
+	  Emitter emitter(postfix_stream, errors_stream);
+
+	  // Фаза 2: синтаксический анализ (парсинг на основе токенов)
+	  Parser parser(tokens, emitter);
+	  parser.parseTranslationUnit();
 
 
       postfix_stream.close();
