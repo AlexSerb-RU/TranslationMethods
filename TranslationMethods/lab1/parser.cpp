@@ -42,7 +42,17 @@ Token Parser::expect(Token::Type type, const std::string& lexeme) {
 }
 
 void Parser::writeError(const Token& t, const std::string& msg) {
-    std::cerr << t.line << ":" << t.column << ": ERROR: " << msg << " (near '" << t.lexeme << "')" << "\n";
+    std::string error_msg = std::to_string(t.line) + ":" + std::to_string(t.column) + ": ERROR: " + msg + " (near '" + t.lexeme + "')\n";
+
+    // Вывод в консоль
+    std::cerr << error_msg;
+
+    // Вывод в файл ошибок
+    std::ostream* err_stream = em.getErrorStream();
+    if (err_stream) {
+        (*err_stream) << error_msg;
+    }
+
     // Базовое восстановление выполняется: если текущий предварительный просмотр равен токену, в котором была сообщена ошибка,
     // он используется, чтобы избежать повторения одной и той же ошибки.
     if (lookahead.line == t.line && lookahead.column == t.column && lookahead.lexeme == t.lexeme) {

@@ -29,6 +29,8 @@ public:
    std::string getBufferContent() const; // для получения сгенерированного кода из буфера
    void setInitialSwitchStack(const std::vector<std::string>& stack); // для установки начального стека меток конца switch (используется при переключении между эмиттерами)
 
+   std::ostream* getErrorStream() const; // для получения потока ошибок
+
 private:
    std::ostream *out = nullptr;
    std::ostream *err = nullptr;

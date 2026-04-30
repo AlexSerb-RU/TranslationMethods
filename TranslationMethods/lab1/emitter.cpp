@@ -76,3 +76,7 @@ std::string Emitter::getBufferContent() const {
 void Emitter::setInitialSwitchStack(const std::vector<std::string> &stack) {
     switchEndStack = stack;
 }
+
+std::ostream* Emitter::getErrorStream() const {
+    return err;
+}

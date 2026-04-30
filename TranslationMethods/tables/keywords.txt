@@ -6,4 +6,3 @@ break
 const
 void
 return
-main
