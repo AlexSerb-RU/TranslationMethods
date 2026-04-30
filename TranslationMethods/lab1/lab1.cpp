@@ -329,7 +329,7 @@ int main( )
    int a = 3 == 2;
    std::cout << a;
    try {
-      const std::string test_name = "../tests/1.cpp";
+      const std::string test_name = "../tests/Code5.cs";
 
       const std::string source = read_file( test_name );
 

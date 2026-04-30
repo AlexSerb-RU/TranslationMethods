@@ -55,17 +55,17 @@ struct LexerDFA {
    // Для каждого конечного состояния - какой токен он производит
    std::unordered_map<State, Token::Type> state_to_token_type;
 
-   bool is_final( State s )
+   bool is_final(State s) // проверка, является ли состояние конечным
    {
       return final_states.find( s ) != final_states.end( );
    }
 
-   void init_matrix( int states_count ) 
+   void init_matrix(int states_count) // инициализация матрицы переходов
    {
       matrix.assign( states_count, std::vector<State>( symbols.size( ), DEAD ) );
    }
 
-   int get_symbol_index( char symbol ) 
+   int get_symbol_index(char symbol) // получение индекса символа в матрице переходов
    {
       auto it = symbol_to_index_map.find( symbol );
       if ( it == symbol_to_index_map.end( ) )
@@ -74,7 +74,7 @@ struct LexerDFA {
       return it->second;
    }
 
-   State move( State state, char symbol )
+   State move(State state, char symbol) // выполнение перехода из состояния state по символу symbol
    {
       int idx = get_symbol_index( symbol );
       if ( idx == -1 )
@@ -116,16 +116,16 @@ private:
    LexerDFA separator_dfa;
 
 public:
-   Scanner(
+   Scanner( 
       const string &source,
       const StaticTable<string> &keywords,
       const StaticTable<string> &operators,
       const StaticTable<string> &separators,
       const string &error_log_path = "errors.log"
-   );
+   ); // конструктор, принимающий исходный код и таблицы для ключевых слов, операторов и разделителей
 
    Token next_token( );
-   std::vector<Token> tokenize();
+   std::vector<Token> tokenize(); // функция для получения всех токенов из входного текста (может использоваться для отладки)
 
 private:
    void init_dfas( );
