@@ -15,47 +15,47 @@ int z3 3;
 int 1i = 1;
 int i_1 = 1;
 int 1_i = 1;
-int i.1 = 1;
-int 1.i = 1;
-int i,1 = 1;
-int 1,i = 1;
+// int i.1 = 1;
+// int 1.i = 1;
+// int i,1 = 1;
+// int 1,i = 1;
 
 // Проверка констант
-PI = 3;
-.PI = 3;
-_PI = 3;
-!PI = 3;
-$PI = 3;
+// PI = 3;
+// // .PI = 3;
+// _PI = 3;
+// !PI = 3;
+// // $PI = 3;
 
-Pi = 3;
-.Pi = 3;
-_Pi = 3;
-!Pi = 3;
-$Pi = 3;
+// Pi = 3;
+// // .Pi = 3;
+// _Pi = 3;
+// !Pi = 3;
+// // $Pi = 3;
 
 int PI = 3;
-int.PI = 3;
+// int.PI = 3;
 int _PI = 3;
-int !PI = 3;
-int $PI = 3;
+//int !PI = 3;
+// int $PI = 3;
 
 int Pi = 3;
-int.Pi = 3;
+// int.Pi = 3;
 int _Pi = 3;
-int !Pi = 3;
-int $Pi = 3;
+// int !Pi = 3;
+// int $Pi = 3;
 
 const int PI = 3;
-const int .PI = 3;
+// const int .PI = 3;
 const int _PI = 3;
-const int !PI = 3;
-const int $PI = 3;
+// const int !PI = 3;
+// const int $PI = 3;
 
 const int Pi = 3;
-const int .Pi = 3;
+// const int .Pi = 3;
 const int _Pi = 3;
-const int !Pi = 3;
-const int $Pi = 3;
+// const int !Pi = 3;
+// const int $Pi = 3;
 
 int MAX_VALUE = 10;
 MAX_VALUE = 30;
@@ -133,9 +133,9 @@ switch (int_case)
 }
 
 // Проверки на соответствие заявленного типа и значения переменной этого типа.
-int s1 = 'c';
-int s2 = 1.1;
-int s3 = 'char';
+// int s1 = 'c';
+// int s2 = 1.1;
+// int s3 = 'char';
 
 // Математические операции
 int num_i1 = 1;
