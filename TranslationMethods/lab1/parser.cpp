@@ -295,7 +295,8 @@ void Parser::parseSwitchStatement() {
                 // число потребляется
                 std::string num = lookahead.lexeme;
                 nextToken();
-                if (lookahead.type == Token::SEPARATOR && lookahead.lexeme == ":") nextToken();
+                // двоеточие обязательно после выражения case
+                expect(Token::SEPARATOR, ":");
                 em.emitLabel(caseLabel);
                 // операторы разбираются до следующего case/default/}
                 while (!(lookahead.type == Token::KEYWORD && (lookahead.lexeme == "case" || lookahead.lexeme == "default")) && !(lookahead.type == Token::SEPARATOR && lookahead.lexeme == "}") && lookahead.type != Token::END_OF_FILE) {
@@ -311,7 +312,8 @@ void Parser::parseSwitchStatement() {
         }
         else if (lookahead.type == Token::KEYWORD && lookahead.lexeme == "default") {
             nextToken();
-            if (lookahead.type == Token::SEPARATOR && lookahead.lexeme == ":") nextToken();
+            // двоеточие обязательно после default
+            expect(Token::SEPARATOR, ":");
             em.emitLabel("sw" + std::to_string(sid) + "_default");
             while (!(lookahead.type == Token::KEYWORD && (lookahead.lexeme == "case" || lookahead.lexeme == "default")) && !(lookahead.type == Token::SEPARATOR && lookahead.lexeme == "}") && lookahead.type != Token::END_OF_FILE) {
                 parseStatement();
