@@ -113,6 +113,15 @@ void Parser::parseExternalDeclaration() {
             while (true) {
                 if (lookahead.type == Token::IDENTIFIER) {
                     Token id = lookahead; nextToken();
+
+                    // проверка повторного определения переменной (семантическая ошибка)
+                    if (isDeclared(id.lexeme)) {
+                        writeError(id, "variable '" + id.lexeme + "' is already declared");
+                    } else {
+                        // регистрация новой переменной
+                        declareVariable(id.lexeme);
+                    }
+
                     if (lookahead.type == Token::OPERATOR && lookahead.lexeme == "=") {
                         nextToken();
                         parseAssignmentExpression();
@@ -167,6 +176,14 @@ void Parser::parseDeclaration() {
         if (lookahead.type == Token::IDENTIFIER) {
             Token id = lookahead;
             nextToken();
+
+            // проверка повторного определения переменной (семантическая ошибка)
+            if (isDeclared(id.lexeme)) {
+                writeError(id, "variable '" + id.lexeme + "' is already declared");
+            } else {
+                // регистрация новой переменной
+                declareVariable(id.lexeme);
+            }
 
             if (lookahead.type == Token::OPERATOR && lookahead.lexeme == "=") {
                 nextToken();
@@ -442,4 +459,12 @@ void Parser::parsePrimaryExpression() {
         return;
     }
     writeError(lookahead, "unexpected token in primary expression");
+}
+
+bool Parser::isDeclared(const std::string &varName) const {
+    return definedVariables.find(varName) != definedVariables.end();
+}
+
+void Parser::declareVariable(const std::string &varName) {
+    definedVariables.insert(varName);
 }

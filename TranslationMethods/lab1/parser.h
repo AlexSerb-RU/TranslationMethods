@@ -4,6 +4,7 @@
 #include "emitter.h"
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 class Parser {
 public:
@@ -16,6 +17,7 @@ private:
 	Emitter &em;
 	Token lookahead;
 	Token lookahead2;
+	std::unordered_set<std::string> definedVariables; // для отслеживания определённых переменных
 
 	void nextToken();
 	bool match(Token::Type type, const std::string &lexeme = ""); 
@@ -50,4 +52,6 @@ private:
 
 	// утилиты
 	void writeError(const Token &t, const std::string &msg);
+	bool isDeclared(const std::string &varName) const; // проверка, объявлена ли переменная
+	void declareVariable(const std::string &varName); // регистрация объявления переменной
 };
